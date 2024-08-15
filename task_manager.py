@@ -2,6 +2,8 @@ import pandas as pd
 from datetime import datetime
 from skip_list import SkipList
 from fibonacci_heap import FibonacciHeap
+import timeit
+import random
 
 class Task:
     def __init__(self, name, priority, due_date, status='Incomplete'):
@@ -117,7 +119,7 @@ class TaskManager:
         """
         incomplete_tasks = [node.value for node in self._iterate_list(self.fib_heap.min_node) if node.value.status == 'Incomplete']
         if incomplete_tasks:
-            return max(incomplete_tasks, key=lambda t: t.priority)
+            return min(incomplete_tasks, key=lambda t: t.priority)
         return None
 
     def complete_next_task(self):
@@ -196,41 +198,117 @@ class TaskManager:
             if node == head:
                 break
 
-# Example usage
+    def display_menu(self):
+        print("\nTask Manager")
+        print("1. Add Task")
+        print("2. Update Task")
+        print("3. Remove Task")
+        print("4. View Next Task")
+        print("5. View Tasks Sorted by Due Date")
+        print("6. View Tasks Sorted by Priority")
+        print("7. Exit")
+        return input("Select an option: ")
+    
+    def user_interface(self):
+        """
+        Main user interface for interacting with the Task Manager.
+        """
+        while True:
+            choice = self.display_menu()
+            
+            if choice == '1':
+                name = input("Enter task name: ")
+                priority = int(input("Enter task priority (lower number = higher priority): "))
+                due_date = input("Enter task due date (YYYY-MM-DD): ")
+                task = Task(name, priority, due_date)
+                self.add_task(task)
+                print(f"Task '{name}' added successfully.")
+            
+            elif choice == '2':
+                name = input("Enter the name of the task to update: ")
+                print("Leave blank to skip an update for that field.")
+                priority = input("Enter new priority (press Enter to skip): ")
+                due_date = input("Enter new due date (YYYY-MM-DD) (press Enter to skip): ")
+                status = input("Enter new status (Complete/Incomplete) (press Enter to skip): ")
+                updates = {}
+                if priority:
+                    updates['priority'] = int(priority)
+                if due_date:
+                    updates['due_date'] = due_date
+                if status:
+                    updates['status'] = status
+                self.update_task(name, **updates)
+                print(f"Task '{name}' updated successfully.")
+            
+            elif choice == '3':
+                name = input("Enter the name of the task to remove: ")
+                self.remove_task(name)
+                print(f"Task '{name}' removed successfully.")
+            
+            elif choice == '4':
+                next_task = self.get_next_task()
+                if next_task:
+                    print(f"Next task to do: {next_task.name}")
+                else:
+                    print("No incomplete tasks available.")
+            
+            elif choice == '5':
+                print("Tasks sorted by due date:")
+                for task in self.sort_tasks_by_due_date():
+                    print(f"{task.name} - {task.due_date}")
+            
+            elif choice == '6':
+                print("Tasks sorted by priority:")
+                for task in self.sort_tasks_by_priority():
+                    print(f"{task.name} - {task.priority}")
+            
+            elif choice == '7':
+                print("Exiting Task Manager.")
+                break
+            else:
+                print("Invalid option. Please try again.")
+
+    def performance_test(self):
+        """
+        Conduct performance tests for the Dynamic Task Manager.
+        """
+        # Performance testing for adding tasks
+        num_tasks=1000
+
+        start_time = timeit.default_timer()
+        for i in range(num_tasks):
+            task = Task(f"Task {i}", random.randint(1, 5), f"2024-12-{random.randint(1, 31)}")
+            # self.add_task(task, save=False)
+            self.add_task(task)
+        elapsed_time = timeit.default_timer() - start_time
+        print(f"Time taken to add {num_tasks} tasks: {elapsed_time:.4f} seconds")
+
+        # Performance testing for retrieving the next task
+        start_time = timeit.default_timer()
+        self.get_next_task()
+        elapsed_time = timeit.default_timer() - start_time
+        print(f"Time taken to retrieve the next task: {elapsed_time:.6f} seconds")
+
+        # Performance testing for sorting tasks by due date
+        start_time = timeit.default_timer()
+        self.sort_tasks_by_due_date()
+        elapsed_time = timeit.default_timer() - start_time
+        print(f"Time taken to sort tasks by due date: {elapsed_time:.4f} seconds")
+
+        # Performance testing for sorting tasks by priority
+        start_time = timeit.default_timer()
+        self.sort_tasks_by_priority()
+        elapsed_time = timeit.default_timer() - start_time
+        print(f"Time taken to sort tasks by priority: {elapsed_time:.4f} seconds")
+
+        # Performance testing for deleting tasks
+        start_time = timeit.default_timer()
+        for i in range(num_tasks):
+            self.remove_task(f"Task {i}")
+        elapsed_time = timeit.default_timer() - start_time
+        print(f"Time taken to delete {num_tasks} tasks: {elapsed_time:.4f} seconds")
+
 if __name__ == "__main__":
     task_manager = TaskManager()
-    task_manager.add_task(Task("Task 1", 5, "2024-08-10"))
-    task_manager.add_task(Task("Task 2", 3, "2024-08-12"))
-    task_manager.add_task(Task("Task 3", 4, "2024-08-11"))
-    task_manager.add_task(Task("Task 4", 2, "2024-08-15"))
-    task_manager.add_task(Task("Task 5", 3, "2024-08-18"))
-    task_manager.add_task(Task("Task 3", 4, "2024-08-11")) #Task 3 duplicate
-
-    next_task = task_manager.get_next_task()
-    if next_task:
-        print("Next task to do:", next_task.name)
-
-    print("---> Delete the Task 4.")
-    task_manager.remove_task("Task 4")
-    task = task_manager.skip_list.search("Task 4")
-    if task:
-        print("Task 4 not deleted")
-    else:
-        print("Task 4 has been deleted successfully")
-
-    print("Tasks sorted by due date:")
-    for task in task_manager.sort_tasks_by_due_date():
-        print(f"{task.name} - {task.due_date}")
-
-    print("Tasks sorted by priority:")
-    for task in task_manager.sort_tasks_by_priority():
-        print(f"{task.name} - {task.priority}")
-
-    print("---> Update the Task 2.")
-    task_manager.update_task("Task 2", priority=1, status="Complete")
-    print("Updated Task 2 details:")
-    task = task_manager.skip_list.search("Task 2")
-    if task:
-        print(f"{task.name} {task.priority} {task.due_date} {task.status}")
-    else:
-        print("Task 2 not found.")
+    task_manager.user_interface()
+    task_manager.performance_test()
